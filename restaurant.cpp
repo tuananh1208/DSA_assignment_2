@@ -130,24 +130,44 @@ string getHuffString(string text) {
 	return Huff_string;
 }
 
+bool checkName(string name) {
+	for (char x : name) {
+		if (!isalpha(x)) {
+			return false;
+		}
+	}
+	return true;
+}
 
+int convertBinToDec(string bin) {
+	int dec = 0;
+	for (int i = bin.size() - 1, j = 0; i >= 0; i--, j++) {
+		if (bin[i] == '1') {
+			dec += pow(2, j);
+		}
+	}
+	return dec;
+}
 
 void reg(string command) {
-	// check valid name
-	cout << "command: " << command << endl;   // del
-	if (command.find(" ") == string::npos || command.find(" ") != command.rfind(" ")) {
+	// check valid REG command
+	if (command == "REG" || command == "REG ") {
 		return;
 	}
-	string name = command.substr(command.find(" ") + 1);
 
+	string name = command.substr(command.find(" ") + 1);
 	if (!checkName(name)) {
 		return;
-	}
-
-
+	} 
 
 	string Huff_string = getHuffString(name);
+	if (Huff_string.size() > 15) {
+		int start = Huff_string.size() - 15;
+		int end = Huff_string.size() - 1;
+		Huff_string = Huff_string.substr(start, end - start + 1);
+	}
 
+	int Huff_dec = convertBinToDec(Huff_string);
 
 }
 
