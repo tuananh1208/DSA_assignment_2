@@ -170,6 +170,71 @@ int convertBinToDec(string bin) {
 	return dec;
 }
 
+class HashTable {
+private:
+	class HashNode {
+	public:
+		int result;
+		int ID;
+		HashNode(int ID = 0, int result = 0) {
+			this->ID = ID;
+			this->result = result;
+		}
+		~HashNode() {}
+	};
+	int size; // max = MAXSIZE/2
+	const int max_size = MAXSIZE / 2;
+	vector<HashNode*> table;
+public:
+	HashTable() {
+		size = 0;
+		table.resize(max_size, nullptr);
+	}
+	~HashTable() {
+		for (int i = 0; i < max_size; i++) {
+			delete table[i];
+		}
+	}
+	int hash_function(HashNode* node) {
+		return node->ID % max_size;
+	}
+
+	void insert(int ID, int result) {
+		if (size == max_size) {
+			// table is full
+			return;
+		}
+		HashNode* node = new HashNode(ID, result);
+		int index = hash_function(node);
+		while (table[index] != nullptr) {
+			index = (index + 1) % max_size;
+		}
+		table[index] = node;
+		size++;
+	}
+
+	void delete_by_ID(int ID) {
+		for (int i = 0; i < max_size; i++) {
+			if (table[i]->ID == ID) {
+				table[i] = nullptr;
+				size--;
+				break;
+			}
+		}
+	}
+
+	void print() {
+		for (int i = 0; i < max_size; i++) {
+			if (table[i] != nullptr) {
+				cout << table[i]->ID << "-" << table[i]->result << endl;
+			}
+		}
+	}
+};
+
+
+
+
 void reg(string command) {
 	// check valid REG command
 	if (command == "REG" || command == "REG ") {
