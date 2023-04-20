@@ -160,6 +160,18 @@ bool checkName(string name) {
 	return true;
 }
 
+bool checkID(string ID) {
+	if (ID[0] != '-' && !isdigit(ID[0])) {
+		return false;
+	}
+	for (int i = 1; i < ID.size(); i++) {
+		if (!isdigit(ID[i])) {
+			return false;
+		}
+	}
+	return true;
+}
+
 int convertBinToDec(string bin) {
 	int dec = 0;
 	for (int i = bin.size() - 1, j = 0; i >= 0; i--, j++) {
@@ -186,6 +198,9 @@ private:
 	const int max_size = MAXSIZE / 2;
 	vector<HashNode*> table;
 public:
+	bool isFull() {
+		return size >= max_size;
+	}
 	HashTable() {
 		size = 0;
 		table.resize(max_size, nullptr);
@@ -200,7 +215,7 @@ public:
 	}
 
 	void insert(int ID, int result) {
-		if (size == max_size) {
+		if (size >= max_size) {
 			// table is full
 			return;
 		}
@@ -254,6 +269,8 @@ private:
 	};
 
 	Node* root;
+	int size;
+	const int max_size = MAXSIZE / 2;
 
 	int const getHeight(Node* node) {
 		if (node == nullptr) {
@@ -268,6 +285,7 @@ private:
 		}
 		node->height = max(getHeight(node->left), getHeight(node->right)) + 1;
 	}
+	
 	Node *rotateLeft(Node* node) {
 		Node* right = node->right;
 		node->right = right->left;
@@ -407,18 +425,35 @@ private:
 	}
 public:
 	AVLTree() {
+		size = 0;
 		root = nullptr;
 	}
 	~AVLTree() {
 		deleteAVLTree(root);
 	}
 
+	
+	int getSize() {
+		return this->size;
+	}
+	bool isFull() {
+		return this->size >= MAXSIZE;
+	}
+
 	void insert(int ID, int result) {
+		if (this->size >= max_size) {
+			return;
+		}
 		root = insert(root, ID, result);
+		this->size++;
 	}
 
 	void remove(int result) {
+		if (this->size <= 0) {
+			return;
+		}
 		root = remove(root, result);
+		this->size--;
 	}
 
 	void print() {
@@ -441,7 +476,114 @@ public:
 };
 
 
-void reg(string command) {
+class Linkedlist {
+private:
+	class Node {
+	public:
+		int result;
+		int ID;
+		Node* next;
+
+		Node() {
+			result = 0;
+			ID = 0;
+			next = NULL;
+		}
+
+		Node(int result, int ID) {
+			this->result = result;
+			this->ID = ID;
+			this->next = NULL;
+		}
+	};
+	Node* head;
+	int size;
+public:
+	Linkedlist() {
+		size = 0;
+		head = NULL;
+	}
+
+	void insertNode(int result, int ID) {
+		Node* newNode = new Node(result, ID);
+		
+		if(head == NULL) {
+			head = newNode;
+			size++;
+			return;
+		}
+
+		Node* temp = head;
+		while(temp->next != NULL) {
+			temp = temp->next;
+		}
+
+		temp->next = newNode;
+		size++;
+	}
+
+	void removeHead() {
+		Node* temp = head;
+		head = head->next;
+		delete temp;
+		size--;
+	}
+
+	int getSize() {
+		return this->size;
+	}
+
+	void updateNode(int result) {
+		if (head->result == result) {
+			insertNode(head->result, head->ID);
+			removeHead();
+			return;
+		}
+
+		Node* temp = head;
+		Node* prev = nullptr;
+		while (temp && temp->result != result) {
+			prev = temp;
+			temp = temp->next;
+		}
+		if (temp == nullptr) {
+			return;
+		}
+
+		insertNode(temp->result, temp->ID);
+		prev->next = temp->next;
+		delete temp;
+		size--;
+	}
+	Node* getHead() {
+		return head;
+	}
+
+	void removeNode(int result) {
+		if (head->result == result) {
+			removeHead();
+			return;
+		}
+		Node* temp = head;
+		Node* prev = nullptr;
+		while (temp && temp->result != result) {
+			prev = temp;
+			temp = temp->next;
+		}
+		if (temp == nullptr) {
+			return;
+		}
+		prev->next = temp->next;
+		delete temp;
+		size--;
+
+	}
+
+};
+
+
+
+void reg(string command, Linkedlist* order_list, Linkedlist* customer_list, map<int, int>& table, HashTable* zone_1, AVLTree* zone_2) {
 	// check valid REG command
 	if (command == "REG" || command == "REG ") {
 		return;
@@ -461,10 +603,88 @@ void reg(string command) {
 	}
 	
 
-	int Huff_dec = convertBinToDec(Huff_string);
-	cout << Huff_dec << endl; // del
+	int result = convertBinToDec(Huff_string);
+	cout << result << endl; // del
+
+	// check if result is [new_customer] or [new_order]
+	bool customerExists = false;
+	for (int i = 1; i <= MAXSIZE; i++) {
+		if (table[i] == result) {
+			customerExists = true;
+			break;
+		}
+	}	
+
+	if (customerExists) { // [new_order]
+		// update min_heap
+		order_list->updateNode(result);
+	} else { // [new_customer]
+		if (customer_list->getSize() >= MAXSIZE) { // full
+		
+			int OPT = result % 3;
+
+			if (OPT == 0) {
+				// OPT = 0
+
+			} else if (OPT == 1) {
+				// OPT = 1
+
+			} else {
+				// OPT = 2
+
+			}
+		} else { // not full
+			int ID = result % MAXSIZE + 1;
+
+			if (table[ID] == -1) {
+				table[ID] = result;
+			} else {
+				bool found = 0;
+				for (int i = 1; i <= MAXSIZE; i++) {
+					ID++;
+					if (ID > MAXSIZE) {
+						ID = 1;
+					}
+					if (table[ID] == -1) {
+						table[ID] = result;
+						found = 1;
+						break;
+					}
+				}
+
+				if (!found) {
+					cout << "error" << endl;
+					return;
+				}
+			}
+
+			// update customer_list, order_list, min_heap, (table - above)
+			customer_list->insertNode(result, ID);
+			order_list->insertNode(result, ID);
+			
+			// choose zone
+			if (result % 2 == 1) { // insert to zone 1
+				if (zone_1->isFull()) {
+					zone_2->insert(ID, result);
+				} else {
+					zone_1->insert(ID, result);
+				}
+			} else { // insert to zone 2
+				if (zone_2->isFull()) {
+					zone_1->insert(ID, result);
+				} else {
+					zone_2->insert(ID, result);
+				}
+			}
+
+		}
+		
+	}
 
 
+
+
+	
 
 
 }
@@ -474,40 +694,35 @@ void reg(string command) {
 
 
 
+void cle(string command, Linkedlist* order_list, Linkedlist* customer_list, map<int, int>& table, HashTable* zone_1, AVLTree* zone_2) {
+	// check valid CLE command
+	if (command == "CLE" || command == "CLE ") {
+		return;
+	}
 
+	string NUM = command.substr(command.find(" ") + 1);
+	if (!checkID(NUM)) {
+		return;
+	} 
 
+	int ID = stoi(NUM);
+	if (ID < 1) {
+		
+	} else if (ID > MAXSIZE) {
 
+	} else {
 
+	}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void cle() {
 
 }
 
-void printHT(HashTable *hash_table) {
-	hash_table->print();
+void printHT(HashTable *zone_1) {
+	zone_1->print();
 }
 
-void printAVL() {
-
+void printAVL(AVLTree *zone_2) {
+	zone_2->print();
 }
 
 void printMH() {
@@ -516,22 +731,33 @@ void printMH() {
 
 void simulate(string filename)
 {
-	HashTable* hash_table = new HashTable();
+	Linkedlist* customer_list = new Linkedlist();
+	Linkedlist* order_list = new Linkedlist();
+	HashTable* zone_1 = new HashTable();
+	AVLTree* zone_2 = new AVLTree();
+
+	map<int, int> table; // -1 is empty
+	for (int i = 1; i <= MAXSIZE; i++) {
+		table[i] = -1;
+	}
+
+
+
 	ifstream myfile(filename);
 	string command;
 	while (getline(myfile, command)) {
 		string key = command.substr(0, command.find(" "));
 
+
+		//
 		if (key == "REG") {
-			//
-			reg(command);
+			reg(command, customer_list, order_list, table, zone_1, zone_2);
 		} else if (key == "CLE") {
-			//
+			cle(command, customer_list, order_list, table, zone_1, zone_2);
 		} else if (key == "PrintHT") {
-			//
-			printHT(hash_table);
+			printHT(zone_1);
 		} else if (key == "PrintAVL") {
-			//
+			printAVL(zone_2);
 		} else if (key == "PrintMH") {
 			//
 		} else {
@@ -539,6 +765,18 @@ void simulate(string filename)
 			return;
 		}
 	}
+
+
+	delete customer_list;
+	delete order_list;
+	delete zone_1;
+	delete zone_2;
+
+
+
+
+
+
 	return;
 }
 
