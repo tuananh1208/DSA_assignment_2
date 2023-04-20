@@ -232,7 +232,213 @@ public:
 	}
 };
 
+class AVLTree {
+private:
+	class Node {
+	public:
+		int ID;
+		int result; // <- key
+		Node* left;
+		Node* right;
+		int height;
 
+        Node(int ID, int result) {
+            this->ID = ID;
+            this->result = result;
+            this->left = nullptr;
+            this->right = nullptr;
+            this->height = 1;
+        }
+		//Node(int ID = 0, int result = 0, Node* left = nullptr, Node* right = nullptr, int height = 1) : ID(ID), result(result), left(left), height(height) {}
+		~Node() {}
+	};
+
+	Node* root;
+
+	int const getHeight(Node* node) {
+		if (node == nullptr) {
+			return 0;
+		}
+		return node->height;
+	}
+
+	void updateHeight(Node* node) {
+		if (node == nullptr) {
+			return;
+		}
+		node->height = max(getHeight(node->left), getHeight(node->right)) + 1;
+	}
+	Node *rotateLeft(Node* node) {
+		Node* right = node->right;
+		node->right = right->left;
+		right->left = node;
+		updateHeight(node);
+		updateHeight(right);
+		
+		return right;
+	}
+
+	Node *rotateRight(Node* node) {
+		Node* left = node->left;
+		node->left = left->right;
+		left->right = node;
+		node->height = max(getHeight(node->left), getHeight(node->right)) + 1;
+		left->height = max(getHeight(left->left), getHeight(left->right)) + 1;
+		return left;
+	}
+
+	int getBalance(Node* node) {
+		if (node == nullptr) {
+			return 0;
+		} else {
+			return getHeight(node->left) - getHeight(node->right);
+		}
+	}
+
+	void deleteAVLTree(Node* node) {
+		if (node == nullptr) {
+			return;
+		} else {
+			deleteAVLTree(node->left);
+			deleteAVLTree(node->right);
+			delete node;
+		}
+	}
+
+	Node* insert(Node* node, int ID, int result) {
+		if (node == nullptr) {
+			node = new Node(ID, result);
+			return node;
+		}
+
+		if (result < node->result) {
+			node->left = insert(node->left, ID, result);
+		} else {
+			node->right = insert(node->right, ID, result);
+		}
+
+		updateHeight(node);
+
+		int balance = getBalance(node);
+		// left left case
+		if (balance > 1 && result < node->left->result) {
+			return rotateRight(node);
+		}
+		// right right case
+		if (balance < -1 && result > node->right->result) {
+			return rotateLeft(node);
+		}
+		// left right case
+		if (balance > 1 && result > node->left->result) {
+			node->left = rotateLeft(node->left);
+			return rotateRight(node);
+		}
+		// right left case
+		if (balance < -1 && result < node->right->result) {
+			node->right = rotateRight(node->right);
+			return rotateLeft(node);
+		}
+		return node;
+	}
+
+	Node* minValueNode(Node* node) {
+		if (node == nullptr) {
+			return nullptr;
+		}
+		Node* current = node;
+		while (current->left != nullptr) {
+			current = current->left;
+		}
+		return current;
+	}
+
+	Node *remove(Node* node, int result) {
+		if (node == nullptr) {
+			return node;
+		}
+		if (result < node->result) {
+			node->left = remove(node->left, result);
+		} else if (result > node->result) {
+			node->right = remove(node->right, result);
+		} else {
+			// Node with one child or no child
+			if ((node->left == nullptr) || (node->right == nullptr)) {
+				Node* temp = node->left ? node->left : node->right;
+				// No child case
+				if (temp == nullptr) {
+					temp = node;   	// ???
+					node = nullptr; // ???
+				} else {
+					// One child case
+					*node = *temp;
+				}
+				delete temp;
+			} else {
+				// Two children case
+				Node* temp = minValueNode(node->right);
+				node->result = temp->result;
+				node->ID = temp->ID;
+				node->right = remove(node->right, temp->result);
+			}
+		}
+		if (node == nullptr) {
+			return node;
+		}
+
+		updateHeight(node);
+
+		int balance = getBalance(node);
+		if (balance > 1 && getBalance(node->left) >= 0) {
+			return rotateRight(node);
+		}
+		if (balance > 1 && getBalance(node->left) < 0) {
+			node->left = rotateLeft(node->left);
+			return rotateRight(node);
+		}
+		if (balance < -1 && getBalance(node->right) <= 0) {
+			return rotateLeft(node);
+		}
+		if (balance < -1 && getBalance(node->right) > 0) {
+			node->right = rotateRight(node->right);
+			return rotateLeft(node);
+		}
+
+		return node;
+	}
+public:
+	AVLTree() {
+		root = nullptr;
+	}
+	~AVLTree() {
+		deleteAVLTree(root);
+	}
+
+	void insert(int ID, int result) {
+		root = insert(root, ID, result);
+	}
+
+	void remove(int result) {
+		root = remove(root, result);
+	}
+
+	void print() {
+		// print bfs
+		queue<Node*> q;
+		q.push(root);
+
+		while (!q.empty()) {
+			Node* node = q.front();
+			q.pop();
+			if (node->left != nullptr) {
+				q.push(node->left);
+			}
+			if (node->right != nullptr) {
+				q.push(node->right);
+			}
+			cout << node->ID << "-" << node->result << endl;
+		}
+	}
+};
 
 
 void reg(string command) {
@@ -292,14 +498,25 @@ void reg(string command) {
 
 
 
+void cle() {
 
+}
 
+void printHT(HashTable *hash_table) {
+	hash_table->print();
+}
 
+void printAVL() {
 
+}
 
+void printMH() {
+	
+}
 
 void simulate(string filename)
 {
+	HashTable* hash_table = new HashTable();
 	ifstream myfile(filename);
 	string command;
 	while (getline(myfile, command)) {
@@ -312,6 +529,7 @@ void simulate(string filename)
 			//
 		} else if (key == "PrintHT") {
 			//
+			printHT(hash_table);
 		} else if (key == "PrintAVL") {
 			//
 		} else if (key == "PrintMH") {
