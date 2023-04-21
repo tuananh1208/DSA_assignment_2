@@ -206,12 +206,10 @@ public:
 		table.resize(max_size, nullptr);
 	}
 	~HashTable() {
-		for (int i = 0; i < max_size; i++) {
-			delete table[i];
-		}
+		clear();
 	}
-	int hash_function(HashNode* node) {
-		return node->ID % max_size;
+	int hash_function(int result) {
+		return result % max_size;
 	}
 
 	void insert(int ID, int result) {
@@ -220,7 +218,7 @@ public:
 			return;
 		}
 		HashNode* node = new HashNode(ID, result);
-		int index = hash_function(node);
+		int index = hash_function(node->result);
 		while (table[index] != nullptr) {
 			index = (index + 1) % max_size;
 		}
@@ -228,9 +226,9 @@ public:
 		size++;
 	}
 
-	void delete_by_ID(int ID) {
+	void remove(int result) {
 		for (int i = 0; i < max_size; i++) {
-			if (table[i]->ID == ID) {
+			if (table[i] && table[i]->result == result) {
 				table[i] = nullptr;
 				size--;
 				break;
@@ -244,6 +242,26 @@ public:
 				cout << table[i]->ID << "-" << table[i]->result << endl;
 			}
 		}
+	}
+
+	vector<pair<int, int>> getResultList() {
+		vector<pair<int, int>> result_list;
+		for (int i = 0; i < max_size; i++) {
+			if (table[i] != nullptr) {
+				result_list.push_back(make_pair(table[i]->ID, table[i]->result));
+			}
+		}
+		return result_list;
+	}
+
+	void clear() {
+		for (int i = 0; i < max_size; i++) {
+			if (table[i] != nullptr) {
+				delete table[i];
+				table[i] = nullptr;
+			}
+		}
+		size = 0;
 	}
 };
 
@@ -321,11 +339,13 @@ private:
 			deleteAVLTree(node->right);
 			delete node;
 		}
+		size = 0;
 	}
 
 	Node* insert(Node* node, int ID, int result) {
 		if (node == nullptr) {
 			node = new Node(ID, result);
+			size++;
 			return node;
 		}
 
@@ -379,6 +399,7 @@ private:
 		} else if (result > node->result) {
 			node->right = remove(node->right, result);
 		} else {
+			
 			// Node with one child or no child
 			if ((node->left == nullptr) || (node->right == nullptr)) {
 				Node* temp = node->left ? node->left : node->right;
@@ -391,6 +412,7 @@ private:
 					*node = *temp;
 				}
 				delete temp;
+				size--;
 			} else {
 				// Two children case
 				Node* temp = minValueNode(node->right);
@@ -432,6 +454,9 @@ public:
 		deleteAVLTree(root);
 	}
 
+	void clear() {
+		deleteAVLTree(root);
+	}
 	
 	int getSize() {
 		return this->size;
@@ -445,7 +470,6 @@ public:
 			return;
 		}
 		root = insert(root, ID, result);
-		this->size++;
 	}
 
 	void remove(int result) {
@@ -453,7 +477,6 @@ public:
 			return;
 		}
 		root = remove(root, result);
-		this->size--;
 	}
 
 	void print() {
@@ -472,6 +495,25 @@ public:
 			}
 			cout << node->ID << "-" << node->result << endl;
 		}
+	}
+	vector<pair<int, int>> getResultList() {
+		vector<pair<int, int>> result_list;
+		queue<Node*> q;
+		q.push(root);
+
+		while (!q.empty()) {
+			Node* node = q.front();
+			q.pop();
+			if (node->left != nullptr) {
+				q.push(node->left);
+			}
+			if (node->right != nullptr) {
+				q.push(node->right);
+			}
+			result_list.push_back(make_pair(node->ID, node->result));
+		}
+
+		return result_list;
 	}
 };
 
@@ -706,12 +748,37 @@ void cle(string command, Linkedlist* order_list, Linkedlist* customer_list, map<
 	} 
 
 	int ID = stoi(NUM);
-	if (ID < 1) {
-		
-	} else if (ID > MAXSIZE) {
-
+	if (ID < 1) {	// clear zone 1
+		vector<pair<int, int>> result_list = zone_1->getResultList();
+		zone_1->clear();
+		// update customer_list, order_list, !min_heap, table
+		for (pair<int, int> x : result_list) {
+			customer_list->removeNode(x.second);
+			order_list->removeNode(x.second);
+			table[x.first] = -1;
+		}
+	} else if (ID > MAXSIZE) {	// clear zone 2
+		vector<pair<int, int>> result_list = zone_2->getResultList();
+		zone_2->clear();
+		// update customer_list, order_list, !min_heap, table
+		for (pair<int, int> x : result_list) {
+			customer_list->removeNode(x.second);
+			order_list->removeNode(x.second);
+			table[x.first] = -1;
+		}
 	} else {
-
+		if (table[ID] != -1) {	// table is not empty
+			int result = table[ID];
+			// update customer_list, order_list, !min_heap, table, zone
+			zone_1->remove(result);
+			zone_2->remove(result);
+			customer_list->removeNode(result);
+			order_list->removeNode(result);
+			table[ID] = -1;
+		} else { // table is empty
+			// do nothing
+			return;
+		}
 	}
 
 
