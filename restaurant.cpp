@@ -147,7 +147,9 @@ string getHuffString(string text) {
 	for (char x : text) {
 		Huff_string += code_map[x];
 	}
-
+	if (Huff_string == "") {
+		Huff_string = "1";
+	}
 	return Huff_string;
 }
 
@@ -186,11 +188,15 @@ class HashTable {
 private:
 	class HashNode {
 	public:
-		int result;
 		int ID;
-		HashNode(int ID = 0, int result = 0) {
+		int result;
+		string name;
+		int num; // so lan goi mon
+		HashNode(int ID = 0, int result = 0, string name = "", int num = 0) {
 			this->ID = ID;
 			this->result = result;
+			this->name = name;
+			this->num = num;
 		}
 		~HashNode() {}
 	};
@@ -212,12 +218,13 @@ public:
 		return result % max_size;
 	}
 
-	void insert(int ID, int result) {
+	void insert(int ID, int result, string name) {
+		// insert new customer
 		if (size >= max_size) {
 			// table is full
 			return;
 		}
-		HashNode* node = new HashNode(ID, result);
+		HashNode* node = new HashNode(ID, result, name, 1);
 		int index = hash_function(node->result);
 		while (table[index] != nullptr) {
 			index = (index + 1) % max_size;
@@ -226,12 +233,21 @@ public:
 		size++;
 	}
 
-	void remove(int result) {
+	void updateNum(int result, string name) {
 		for (int i = 0; i < max_size; i++) {
-			if (table[i] && table[i]->result == result) {
+			if (table[i]->name == name) {
+				table[i]->num++;
+				return;
+			}
+		}
+	}
+
+	void remove(int result, string name) {
+		for (int i = 0; i < max_size; i++) {
+			if (table[i] && table[i]->name == name) {
 				table[i] = nullptr;
 				size--;
-				break;
+				return;
 			}
 		}
 	}
@@ -239,20 +255,20 @@ public:
 	void print() {
 		for (int i = 0; i < max_size; i++) {
 			if (table[i] != nullptr) {
-				cout << table[i]->ID << "-" << table[i]->result << endl;
+				cout << table[i]->ID << "-" << table[i]->result << "-" << table[i]->num << endl;
 			}
 		}
 	}
 
-	vector<pair<int, int>> getResultList() {
-		vector<pair<int, int>> result_list;
-		for (int i = 0; i < max_size; i++) {
-			if (table[i] != nullptr) {
-				result_list.push_back(make_pair(table[i]->ID, table[i]->result));
-			}
-		}
-		return result_list;
-	}
+	// vector<pair<int, int>> getResultList() {
+	// 	vector<pair<int, int>> result_list;
+	// 	for (int i = 0; i < max_size; i++) {
+	// 		if (table[i] != nullptr) {
+	// 			result_list.push_back(make_pair(table[i]->ID, table[i]->result));
+	// 		}
+	// 	}
+	// 	return result_list;
+	// }
 
 	void clear() {
 		for (int i = 0; i < max_size; i++) {
@@ -271,13 +287,17 @@ private:
 	public:
 		int ID;
 		int result; // <- key
+		string name;
+		int num;
 		Node* left;
 		Node* right;
 		int height;
 
-        Node(int ID, int result) {
+        Node(int ID, int result, string name) {
             this->ID = ID;
             this->result = result;
+			this->name = name;
+			this->num = 1;
             this->left = nullptr;
             this->right = nullptr;
             this->height = 1;
@@ -342,17 +362,17 @@ private:
 		size = 0;
 	}
 
-	Node* insert(Node* node, int ID, int result) {
+	Node* insert(Node* node, int ID, int result, string name) {
 		if (node == nullptr) {
-			node = new Node(ID, result);
+			node = new Node(ID, result, name);
 			size++;
 			return node;
 		}
 
 		if (result < node->result) {
-			node->left = insert(node->left, ID, result);
+			node->left = insert(node->left, ID, result, name);
 		} else {
-			node->right = insert(node->right, ID, result);
+			node->right = insert(node->right, ID, result, name);
 		}
 
 		updateHeight(node);
@@ -379,6 +399,19 @@ private:
 		return node;
 	}
 
+	void updateNum(Node* node, int result, string name) {
+		if (node == nullptr) {
+			return;
+		}
+		if (result < node->result) {
+			updateNum(node->left, result, name);
+		} else if (result > node->result) {
+			updateNum(node->right, result, name);
+		} else if (node->name == name) {
+			node->num++;
+		}
+	}
+
 	Node* minValueNode(Node* node) {
 		if (node == nullptr) {
 			return nullptr;
@@ -390,15 +423,15 @@ private:
 		return current;
 	}
 
-	Node *remove(Node* node, int result) {
+	Node *remove(Node* node, int result, string name) {
 		if (node == nullptr) {
 			return node;
 		}
 		if (result < node->result) {
-			node->left = remove(node->left, result);
+			node->left = remove(node->left, result, name);
 		} else if (result > node->result) {
-			node->right = remove(node->right, result);
-		} else {
+			node->right = remove(node->right, result, name);
+		} else if (node->name == name) {
 			
 			// Node with one child or no child
 			if ((node->left == nullptr) || (node->right == nullptr)) {
@@ -418,8 +451,10 @@ private:
 				Node* temp = minValueNode(node->right);
 				node->result = temp->result;
 				node->ID = temp->ID;
-				node->right = remove(node->right, temp->result);
+				node->right = remove(node->right, temp->result, name);
 			}
+		} else {
+			return node;
 		}
 		if (node == nullptr) {
 			return node;
@@ -465,22 +500,30 @@ public:
 		return this->size >= MAXSIZE;
 	}
 
-	void insert(int ID, int result) {
+	void insert(int ID, int result, string name) {
 		if (this->size >= max_size) {
 			return;
 		}
-		root = insert(root, ID, result);
+		root = insert(root, ID, result, name);
 	}
 
-	void remove(int result) {
+	void updateNum(int result, string name) {
 		if (this->size <= 0) {
 			return;
 		}
-		root = remove(root, result);
+		updateNum(root, result, name);
+	}
+
+	void remove(int result, string name) {
+		if (this->size <= 0) {
+			return;
+		}
+		root = remove(root, result, name);
 	}
 
 	void print() {
 		// print bfs
+		// "ID-result-num"
 		queue<Node*> q;
 		q.push(root);
 
@@ -493,28 +536,28 @@ public:
 			if (node->right != nullptr) {
 				q.push(node->right);
 			}
-			cout << node->ID << "-" << node->result << endl;
+			cout << node->ID << "-" << node->result << "-" << node->num << endl;
 		}
 	}
-	vector<pair<int, int>> getResultList() {
-		vector<pair<int, int>> result_list;
-		queue<Node*> q;
-		q.push(root);
+	// vector<pair<int, int>> getResultList() {
+	// 	vector<pair<int, int>> result_list;
+	// 	queue<Node*> q;
+	// 	q.push(root);
 
-		while (!q.empty()) {
-			Node* node = q.front();
-			q.pop();
-			if (node->left != nullptr) {
-				q.push(node->left);
-			}
-			if (node->right != nullptr) {
-				q.push(node->right);
-			}
-			result_list.push_back(make_pair(node->ID, node->result));
-		}
+	// 	while (!q.empty()) {
+	// 		Node* node = q.front();
+	// 		q.pop();
+	// 		if (node->left != nullptr) {
+	// 			q.push(node->left);
+	// 		}
+	// 		if (node->right != nullptr) {
+	// 			q.push(node->right);
+	// 		}
+	// 		result_list.push_back(make_pair(node->ID, node->result));
+	// 	}
 
-		return result_list;
-	}
+	// 	return result_list;
+	// }
 };
 
 
@@ -524,30 +567,47 @@ private:
 	public:
 		int result;
 		int ID;
+		string name;
 		Node* next;
 
 		Node() {
 			result = 0;
 			ID = 0;
+			name = "";
 			next = NULL;
 		}
 
-		Node(int result, int ID) {
+		Node(int result, int ID, string name) {
 			this->result = result;
 			this->ID = ID;
+			this->name = name;
 			this->next = NULL;
 		}
 	};
 	Node* head;
 	int size;
+
+	void deleteLinkedlist(Node* node) {
+		if (node == NULL) {
+			return;
+		}
+		deleteLinkedlist(node->next);
+		delete node;
+	}
+
 public:
 	Linkedlist() {
 		size = 0;
-		head = NULL;
+		head = nullptr;
 	}
 
-	void insertNode(int result, int ID) {
-		Node* newNode = new Node(result, ID);
+	~Linkedlist() {
+		deleteLinkedlist(head);
+		this->size = 0;
+	}
+
+	void insertNode(int result, int ID, string name) {
+		Node* newNode = new Node(result, ID, name);
 		
 		if(head == NULL) {
 			head = newNode;
@@ -575,9 +635,9 @@ public:
 		return this->size;
 	}
 
-	void updateNode(int result) {
-		if (head->result == result) {
-			insertNode(head->result, head->ID);
+	void updateNode(int result, string name) {
+		if (head->name == name) {
+			insertNode(head->result, head->ID, head->name);
 			removeHead();
 			return;
 		}
@@ -601,8 +661,8 @@ public:
 		return head;
 	}
 
-	void removeNode(int result) {
-		if (head->result == result) {
+	void removeNode(int result, string name) {
+		if (head->name == name) {
 			removeHead();
 			return;
 		}
@@ -623,7 +683,164 @@ public:
 
 };
 
+class MinHeap {
+private:
+	class Node {
+	public:
+		int ID;
+		int num;
+		int result;
+		string name;
+		int priority;
+		Node(int ID, int num, int result, string name, int priority) {
+			this->ID = ID;
+			this->num = num;
+			this->result = result;
+			this->name = name;
+			this->priority = priority;
+		}
+	};
 
+	Node* heap[MAXSIZE];
+	int max_size = MAXSIZE;
+	int size;
+	int increase_num;
+
+	int parent(int i) {
+		return (i - 1) / 2;
+	}
+
+	int left(int i) {
+		return 2 * i + 1;
+	}
+
+	int right(int i) {
+		return 2 * i + 2;
+	}
+
+	void swap(Node* a, Node* b) {
+		Node* temp = a;
+		a = b;
+		b = temp;
+	}
+
+	void reheapUp(int pos) {
+		if (pos <= 0 || pos >= size) {
+			return;
+		}
+		if (heap[parent(pos)]->num > heap[pos]->num || (heap[parent(pos)]->num == heap[pos]->num && heap[parent(pos)]->priority > heap[pos]->priority)) {
+			swap(heap[parent(pos)], heap[pos]);
+			reheapUp(parent(pos));
+		}
+	}
+
+	void reheapDown(int pos) {
+		if (pos < 0 || pos >= size - 1) {
+			return;
+		}
+
+		int l = left(pos); 
+		if (l > size-1) {
+			return;
+		}
+		int r = right(pos);
+		int min_child;
+
+		if (r > size-1) {
+			min_child = l;
+		} else {
+			if (heap[l]->num < heap[r]->num || (heap[l]->num == heap[r]->num && heap[l]->priority < heap[r]->priority)) {
+				min_child = l;
+			} else {
+				min_child = r;
+			}
+		}
+
+		if (heap[pos]->num > heap[min_child]->num || (heap[pos]->num == heap[min_child]->num && heap[pos]->priority > heap[min_child]->priority)) {
+			swap(heap[pos], heap[min_child]);
+			reheapDown(min_child);
+		}
+	}
+public:
+	MinHeap() {
+		this->size = 0;
+		this->max_size = MAXSIZE;
+		this->increase_num = 0;
+	}
+	~MinHeap() {
+		for (int i = 0; i < max_size; i++) {
+			if (heap[i]) {
+				delete heap[i];
+			}
+		}
+		this->size = 0;
+		this->max_size = MAXSIZE;
+		this->increase_num = 0;
+	}
+
+	void insert(int ID, int num, int result, string name) {
+		if (this->size >= max_size) {
+			return;
+		}
+
+		Node* newNode = new Node(ID, num, result, name, increase_num++);
+		heap[size++] = newNode;
+		reheapUp(size-1);
+	}
+
+	void insert(Node* node) {
+		if (this->size >= max_size) {
+			return;
+		}
+		heap[size++] = node;
+		reheapUp(size-1);
+	}
+
+	void updateNum(int result, string name) {
+		for (int i = 0; i < size; i++) {
+			if (heap[i]->name == name) {
+				Node* temp = heap[i];
+				remove(i);
+				insert(temp);
+				return;
+			}
+		}
+	}
+
+	void remove(int pos) {
+		if (pos < 0 || pos >= size || size == 0) {
+			return;
+		}
+		delete heap[pos];
+		heap[pos] = heap[size-1];
+		heap[size-1] = nullptr;
+		size--;
+		reheapDown(pos);
+	}
+
+
+	void remove(string name) {
+		for (int i = 0; i < size; i++) {
+			if (heap[i]->name == name) {
+				remove(i);
+				return;
+			}
+		}
+	}
+
+	void removeTop() {
+		remove(0);
+	}
+
+	void print(int index) {
+
+	}
+	void print() {
+		if (heap[0]) {
+			cout << heap[0]->ID << "-" << heap[0]->num << endl;
+		}
+	}
+};
 
 void reg(string command, Linkedlist* order_list, Linkedlist* customer_list, map<int, int>& table, HashTable* zone_1, AVLTree* zone_2) {
 	// check valid REG command
@@ -648,6 +865,8 @@ void reg(string command, Linkedlist* order_list, Linkedlist* customer_list, map<
 	int result = convertBinToDec(Huff_string);
 	cout << result << endl; // del
 
+
+	// MAIN FUNCTION
 	// check if result is [new_customer] or [new_order]
 	bool customerExists = false;
 	for (int i = 1; i <= MAXSIZE; i++) {
@@ -658,22 +877,22 @@ void reg(string command, Linkedlist* order_list, Linkedlist* customer_list, map<
 	}	
 
 	if (customerExists) { // [new_order]
-		// update min_heap
-		order_list->updateNode(result);
+		// update order_list, min_heap, zone 1, zone 2
+		order_list->updateNode(result, name);
+		zone_1->updateNum(result, name);
+		zone_2->updateNum(result, name);
 	} else { // [new_customer]
 		if (customer_list->getSize() >= MAXSIZE) { // full
 		
 			int OPT = result % 3;
 
-			if (OPT == 0) {
-				// OPT = 0
-
-			} else if (OPT == 1) {
-				// OPT = 1
-
-			} else {
-				// OPT = 2
-
+			switch (OPT) {
+			case 0:
+				//
+			case 1:
+				//
+			case 2:
+				//
 			}
 		} else { // not full
 			int ID = result % MAXSIZE + 1;
@@ -701,21 +920,21 @@ void reg(string command, Linkedlist* order_list, Linkedlist* customer_list, map<
 			}
 
 			// update customer_list, order_list, min_heap, (table - above)
-			customer_list->insertNode(result, ID);
-			order_list->insertNode(result, ID);
+			customer_list->insertNode(result, ID, name);
+			order_list->insertNode(result, ID, name);
 			
 			// choose zone
 			if (result % 2 == 1) { // insert to zone 1
 				if (zone_1->isFull()) {
-					zone_2->insert(ID, result);
+					zone_2->insert(ID, result, name);
 				} else {
-					zone_1->insert(ID, result);
+					zone_1->insert(ID, result, name);
 				}
 			} else { // insert to zone 2
 				if (zone_2->isFull()) {
-					zone_1->insert(ID, result);
+					zone_1->insert(ID, result, name);
 				} else {
-					zone_2->insert(ID, result);
+					zone_2->insert(ID, result, name);
 				}
 			}
 
