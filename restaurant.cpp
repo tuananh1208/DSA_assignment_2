@@ -833,16 +833,19 @@ public:
 	}
 
 	void print(int index) {
-
+		if (index >= size) {
+			return;
+		}
+		cout << heap[index]->ID << "-" << heap[index]->num << endl;
+		print(left(index));
+		print(right(index));
 	}
 	void print() {
-		if (heap[0]) {
-			cout << heap[0]->ID << "-" << heap[0]->num << endl;
-		}
+		print(0);
 	}
 };
 
-void reg(string command, Linkedlist* order_list, Linkedlist* customer_list, map<int, int>& table, HashTable* zone_1, AVLTree* zone_2) {
+void reg(string command, Linkedlist* order_list, Linkedlist* customer_list, map<int, int>& table, MinHeap* order_freq_list, HashTable* zone_1, AVLTree* zone_2) {
 	// check valid REG command
 	if (command == "REG" || command == "REG ") {
 		return;
@@ -955,7 +958,7 @@ void reg(string command, Linkedlist* order_list, Linkedlist* customer_list, map<
 
 
 
-void cle(string command, Linkedlist* order_list, Linkedlist* customer_list, map<int, int>& table, HashTable* zone_1, AVLTree* zone_2) {
+void cle(string command, Linkedlist* order_list, Linkedlist* customer_list, map<int, int>& table, MinHeap* order_freq_list, HashTable* zone_1, AVLTree* zone_2) {
 	// check valid CLE command
 	if (command == "CLE" || command == "CLE ") {
 		return;
@@ -1011,8 +1014,8 @@ void printAVL(AVLTree *zone_2) {
 	zone_2->print();
 }
 
-void printMH() {
-	
+void printMH(MinHeap* order_freq_list) {
+	order_freq_list->print();
 }
 
 void simulate(string filename)
@@ -1021,7 +1024,7 @@ void simulate(string filename)
 	Linkedlist* order_list = new Linkedlist();
 	HashTable* zone_1 = new HashTable();
 	AVLTree* zone_2 = new AVLTree();
-
+	MinHeap* order_freq_list = new MinHeap();
 	map<int, int> table; // -1 is empty
 	for (int i = 1; i <= MAXSIZE; i++) {
 		table[i] = -1;
@@ -1037,15 +1040,15 @@ void simulate(string filename)
 
 		//
 		if (key == "REG") {
-			reg(command, customer_list, order_list, table, zone_1, zone_2);
+			reg(command, customer_list, order_list, table, order_freq_list, zone_1, zone_2);
 		} else if (key == "CLE") {
-			cle(command, customer_list, order_list, table, zone_1, zone_2);
+			cle(command, customer_list, order_list, table, order_freq_list, zone_1, zone_2);
 		} else if (key == "PrintHT") {
 			printHT(zone_1);
 		} else if (key == "PrintAVL") {
 			printAVL(zone_2);
 		} else if (key == "PrintMH") {
-			//
+			printMH(order_freq_list);
 		} else {
 			//
 			return;
