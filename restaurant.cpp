@@ -350,6 +350,7 @@ private:
 			deleteAVLTree(node->right);
 			delete node;
 		}
+		root = nullptr;
 		size = 0;
 	}
 
@@ -447,7 +448,9 @@ private:
 				node->right = remove(node->right, temp->result, temp->name);
 			}
 		} else {
-			return node;
+			//return node;
+			node->left = remove(node->left, result, name);
+			node->right = remove(node->right, result, name);
 		}
 		if (node == nullptr) {
 			return node;
@@ -520,6 +523,9 @@ public:
 	void print() {
 		// print bfs
 		// "ID-result-num"
+		if (size <= 0) {
+			return;
+		}
 		queue<Node*> q;
 		q.push(root);
 
@@ -535,28 +541,9 @@ public:
 			cout << node->ID << "-" << node->result << "-" << node->num << endl;
 		}
 	}
-	// vector<pair<int, int>> getResultList() {
-	// 	vector<pair<int, int>> result_list;
-	// 	queue<Node*> q;
-	// 	q.push(root);
-
-	// 	while (!q.empty()) {
-	// 		Node* node = q.front();
-	// 		q.pop();
-	// 		if (node->left != nullptr) {
-	// 			q.push(node->left);
-	// 		}
-	// 		if (node->right != nullptr) {
-	// 			q.push(node->right);
-	// 		}
-	// 		result_list.push_back(make_pair(node->ID, node->result));
-	// 	}
-
-	// 	return result_list;
-	// }
 };
 
-class Linkedlist {
+class LinkedList {
 private:
 	class Node {
 	public:
@@ -593,12 +580,12 @@ private:
 	}
 
 public:
-	Linkedlist() {
+	LinkedList() {
 		size = 0;
 		head = nullptr;
 	}
 
-	~Linkedlist() {
+	~LinkedList() {
 		deleteLinkedlist(head);
 		this->size = 0;
 	}
@@ -665,7 +652,7 @@ public:
 		}
 		Node* temp = head;
 		Node* prev = nullptr;
-		while (temp && temp->result != result) {
+		while (temp && temp->name != name) {
 			prev = temp;
 			temp = temp->next;
 		}
@@ -709,7 +696,10 @@ public:
 		while (temp) {
 			if (temp->zone == 2) {
 				result.push_back(make_tuple(temp->ID, temp->result, temp->name));
-				removeNode(temp->result, temp->name);
+				Node* prev = temp;
+				temp = temp->next;
+				removeNode(prev->result, prev->name);
+				continue;
 			}
 			temp = temp->next;
 		}
@@ -769,7 +759,7 @@ private:
 		return 2 * i + 2;
 	}
 
-	void swap(Node* a, Node* b) {
+	void swap(Node*& a, Node*& b) {
 		Node* temp = a;
 		a = b;
 		b = temp;
@@ -902,7 +892,7 @@ public:
 	}
 };
 
-void reg(string command, Linkedlist* customer_list, Linkedlist* order_list, MinHeap* order_freq_list, map<int, pair<int, string>>& table, HashTable* zone_1, AVLTree* zone_2) {
+void reg(string command, LinkedList* customer_list, LinkedList* order_list, MinHeap* order_freq_list, map<int, pair<int, string>>& table, HashTable* zone_1, AVLTree* zone_2) {
 	// check valid REG command
 	if (command == "REG" || command == "REG ") {
 		return;
@@ -912,7 +902,7 @@ void reg(string command, Linkedlist* customer_list, Linkedlist* order_list, MinH
 	if (!checkName(name)) {
 		return;
 	} 
-
+	//cout << name << endl; // del
 	string Huff_string = getHuffString(name); 
 	//cout << Huff_string << endl; // del
 	if (Huff_string.size() > 15) {
@@ -923,14 +913,14 @@ void reg(string command, Linkedlist* customer_list, Linkedlist* order_list, MinH
 	
 
 	int result = convertBinToDec(Huff_string);
-	//cout << result << endl; // del
+	//cout << result; // del
 
 
 	// MAIN FUNCTION
 	// check if result is [new_customer] or [new_order]
 	bool customerExists = false;
 	for (int i = 1; i <= MAXSIZE; i++) {
-		if (table[i].second == name) {
+		if (table[i].first != -1 && table[i].second == name) {
 			customerExists = true;
 			break;
 		}
@@ -1000,6 +990,7 @@ void reg(string command, Linkedlist* customer_list, Linkedlist* order_list, MinH
 				return;
 			}
 		}	
+		//cout << "-" << ID << endl; // del
 		Zone zone;
 		// choose zone
 		if (result % 2 == 1) { // insert to zone 1
@@ -1019,14 +1010,16 @@ void reg(string command, Linkedlist* customer_list, Linkedlist* order_list, MinH
 				zone = zone2;
 			}
 		}
-		// update customer_list, order_list, min_heap, (table - above)
+		// update customer_list, order_list, min_heap, table
 		customer_list->insertNode(result, ID, name, zone);
 		order_list->insertNode(result, ID, name, zone);
 		order_freq_list->insert(ID, result, name);
+		table[ID].first = result;
+		table[ID].second = name;
 	}
 }
 
-void cle(string command, Linkedlist* customer_list, Linkedlist* order_list, MinHeap* order_freq_list, map<int, pair<int, string>>& table, HashTable* zone_1, AVLTree* zone_2) {
+void cle(string command, LinkedList* customer_list, LinkedList* order_list, MinHeap* order_freq_list, map<int, pair<int, string>>& table, HashTable* zone_1, AVLTree* zone_2) {
 	// check valid CLE command
 	if (command == "CLE" || command == "CLE ") {
 		return;
@@ -1089,8 +1082,8 @@ void printMH(MinHeap* order_freq_list) {
 
 void simulate(string filename)
 {
-	Linkedlist* customer_list = new Linkedlist();
-	Linkedlist* order_list = new Linkedlist();
+	LinkedList* customer_list = new LinkedList();
+	LinkedList* order_list = new LinkedList();
 	HashTable* zone_1 = new HashTable();
 	AVLTree* zone_2 = new AVLTree();
 	MinHeap* order_freq_list = new MinHeap();
@@ -1114,7 +1107,7 @@ void simulate(string filename)
 			printMH(order_freq_list);
 		} else {
 			//
-			return;
+			int n = 1;
 		}
 	}
 
@@ -1132,19 +1125,3 @@ void simulate(string filename)
 	return;
 }
 
-
-
-
-/*
-REG Johnuigfifbahjasbdfhjbasdhjf
-REG iuasgfuigweibjaskdfbjksadf
-REG iuiwehruihqwUIAGSIDiernbsandfb
-REG uiewhqruihqiuwerhnbdasnbfnmasd
-REG ukkajhsdfjkasbndbmnFJKHJKsdbfsabdf
-REG kjasdbfjksbDFFDFFfdjksabfdjkasdf
-REG skjafdbkjasfnmFFFFsaddnfdf
-CLE 5
-PrintHT
-PrintAVL
-PrintMH
-*/
