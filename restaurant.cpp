@@ -379,12 +379,12 @@ private:
 			return rotateLeft(node);
 		}
 		// left right case
-		if (balance > 1 && result > node->left->result) {
+		if (balance > 1 && result >= node->left->result) {
 			node->left = rotateLeft(node->left);
 			return rotateRight(node);
 		}
 		// right left case
-		if (balance < -1 && result < node->right->result) {
+		if (balance < -1 && result <= node->right->result) {
 			node->right = rotateRight(node->right);
 			return rotateLeft(node);
 		}
