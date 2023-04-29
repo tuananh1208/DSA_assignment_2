@@ -403,6 +403,9 @@ private:
 			updateNum(node->right, result, name);
 		} else if (node->name == name) {
 			node->num++;
+		} else {
+			updateNum(node->left, result, name);
+			updateNum(node->right, result, name);
 		}
 	}
 
@@ -894,7 +897,7 @@ public:
 	}
 };
 
-void reg(string command, LinkedList* customer_list, LinkedList* order_list, MinHeap* order_freq_list, map<int, pair<int, string>>& table, HashTable* area_1, AVLTree* area_2) {
+void reg(string command, LinkedList* FIFO, LinkedList* LRCO, MinHeap* LFCO, map<int, pair<int, string>>& table, HashTable* area_1, AVLTree* area_2) {
 	// check valid REG command
 	if (command == "REG" || command == "REG ") {
 		return;
@@ -927,14 +930,14 @@ void reg(string command, LinkedList* customer_list, LinkedList* order_list, MinH
 	}	
 
 	if (customerExists) { // [new_order]
-		// update order_list, min_heap, area 1, area 2
-		order_list->updateNum(result, name);
-		order_freq_list->updateNum(result, name);
+		// update LRCO, min_heap, area 1, area 2
+		LRCO->updateNum(result, name);
+		LFCO->updateNum(result, name);
 		area_1->updateNum(result, name);
 		area_2->updateNum(result, name);
 	} else { // [new_customer]
 		int ID;
-		if (customer_list->getSize() >= MAXSIZE) { // full
+		if (FIFO->getSize() >= MAXSIZE) { // full
 		
 			int OPT = result % 3;
 			int rm_result;
@@ -942,33 +945,34 @@ void reg(string command, LinkedList* customer_list, LinkedList* order_list, MinH
 
 			switch (OPT) {
 				case 0: { // FIFO
-					rm_result = customer_list->getHead()->result;
-					rm_name = customer_list->getHead()->name;
-					ID = customer_list->getHead()->ID;
+					rm_result = FIFO->getHead()->result;
+					rm_name = FIFO->getHead()->name;
+					ID = FIFO->getHead()->ID;
 					break;
 				}
 				case 1: { // LRCO
-					rm_result = order_list->getHead()->result;
-					rm_name = order_list->getHead()->name;
-					ID = order_list->getHead()->ID;
+					rm_result = LRCO->getHead()->result;
+					rm_name = LRCO->getHead()->name;
+					ID = LRCO->getHead()->ID;
 					break;
 				}
 				case 2: { // LFCO
-					rm_result = order_freq_list->getHead()->result;
-					rm_name = order_freq_list->getHead()->name;
-					ID = order_freq_list->getHead()->ID;
+					rm_result = LFCO->getHead()->result;
+					rm_name = LFCO->getHead()->name;
+					ID = LFCO->getHead()->ID;
 					break;
 				}
 			}
 
 			area_1->remove(rm_result, rm_name);
 			area_2->remove(rm_result, rm_name);
-			customer_list->removeNode(rm_result, rm_name);
-			order_list->removeNode(rm_result, rm_name);				order_freq_list->remove(rm_result, rm_name);
+			FIFO->removeNode(rm_result, rm_name);
+			LRCO->removeNode(rm_result, rm_name);				LFCO->remove(rm_result, rm_name);
 			table[ID].first = -1;
 
 
 		} else { // not full
+			// find ID
 			ID = result % MAXSIZE + 1;
 
 			bool found = 0;
@@ -1011,16 +1015,16 @@ void reg(string command, LinkedList* customer_list, LinkedList* order_list, MinH
 				area = area2;
 			}
 		}
-		// update customer_list, order_list, min_heap, table
-		customer_list->insertNode(result, ID, name, area);
-		order_list->insertNode(result, ID, name, area);
-		order_freq_list->insert(ID, result, name);
+		// update FIFO, LRCO, min_heap, table
+		FIFO->insertNode(result, ID, name, area);
+		LRCO->insertNode(result, ID, name, area);
+		LFCO->insert(ID, result, name);
 		table[ID].first = result;
 		table[ID].second = name;
 	}
 }
 
-void cle(string command, LinkedList* customer_list, LinkedList* order_list, MinHeap* order_freq_list, map<int, pair<int, string>>& table, HashTable* area_1, AVLTree* area_2) {
+void cle(string command, LinkedList* FIFO, LinkedList* LRCO, MinHeap* LFCO, map<int, pair<int, string>>& table, HashTable* area_1, AVLTree* area_2) {
 	// check valid CLE command
 	if (command == "CLE" || command == "CLE ") {
 		return;
@@ -1033,21 +1037,21 @@ void cle(string command, LinkedList* customer_list, LinkedList* order_list, MinH
 	int ID = stoi(NUM);
 
 	if (ID < 1) {	// clear area 1
-		// update customer_list, order_list, order_freq_list, min_heap, table, 
-		vector<tuple<int, int, string>> info_list = order_list->getArea1IDListAndDelete();
+		// update FIFO, LRCO, LFCO, min_heap, table, 
+		vector<tuple<int, int, string>> info_list = FIFO->getArea1IDListAndDelete();
 		for (auto x : info_list) {
-			customer_list->removeNode(get<1>(x), get<2>(x));
-			//order_list->removeNode(get<1>(x), get<2>(x));
-			order_freq_list->remove(get<1>(x), get<2>(x));
+			//FIFO->removeNode(get<1>(x), get<2>(x));
+			LRCO->removeNode(get<1>(x), get<2>(x));
+			LFCO->remove(get<1>(x), get<2>(x));
 			area_1->remove(get<1>(x), get<2>(x));
 			table[get<0>(x)].first = -1;
 		}
 	} else if (ID > MAXSIZE) {	// clear area 2
-		vector<tuple<int, int, string>> info_list = order_list->getArea2IDListAndDelete();
+		vector<tuple<int, int, string>> info_list = FIFO->getArea2IDListAndDelete();
 		for (auto x : info_list) {
-			customer_list->removeNode(get<1>(x), get<2>(x));
-			//order_list->removeNode(get<1>(x), get<2>(x));
-			order_freq_list->remove(get<1>(x), get<2>(x));
+			//FIFO->removeNode(get<1>(x), get<2>(x));
+			LRCO->removeNode(get<1>(x), get<2>(x));
+			LFCO->remove(get<1>(x), get<2>(x));
 			area_2->remove(get<1>(x), get<2>(x));
 			table[get<0>(x)].first = -1;
 		}
@@ -1055,12 +1059,12 @@ void cle(string command, LinkedList* customer_list, LinkedList* order_list, MinH
 		if (table[ID].first != -1) {	// table is not empty
 			int result = table[ID].first;
 			string name = table[ID].second;
-			// update customer_list, order_list, !min_heap, table, area
+			// update FIFO, LRCO, !min_heap, table, area
 			area_1->remove(result, name);
 			area_2->remove(result, name);
-			customer_list->removeNode(result, name);
-			order_list->removeNode(result, name);
-			order_freq_list->remove(result, name);
+			FIFO->removeNode(result, name);
+			LRCO->removeNode(result, name);
+			LFCO->remove(result, name);
 			table[ID].first = -1;
 		} else { // table is empty
 			// do nothing
@@ -1077,18 +1081,19 @@ void printAVL(AVLTree *area_2) {
 	area_2->print();
 }
 
-void printMH(MinHeap* order_freq_list) {
-	order_freq_list->print();
+void printMH(MinHeap *LFCO) {
+	LFCO->print();
 }
 
 void simulate(string filename)
 {
-	LinkedList* customer_list = new LinkedList();
-	LinkedList* order_list = new LinkedList();
+	LinkedList* FIFO = new LinkedList();
+	LinkedList* LRCO = new LinkedList();
 	HashTable* area_1 = new HashTable();
 	AVLTree* area_2 = new AVLTree();
-	MinHeap* order_freq_list = new MinHeap();
-	map<int, pair<int, string>> table; // -1 is empty
+	MinHeap* LFCO = new MinHeap();
+
+	map<int, pair<int, string>> table; // .first = -1 is empty table
 	for (int i = 1; i <= MAXSIZE; i++) {
 		table[i].first = -1;
 	}
@@ -1097,24 +1102,25 @@ void simulate(string filename)
 	while (getline(myfile, command)) {
 		string key = command.substr(0, command.find(" "));
 		if (key == "REG") {
-			reg(command, customer_list, order_list, order_freq_list, table, area_1, area_2);
+			reg(command, FIFO, LRCO, LFCO, table, area_1, area_2);
 		} else if (key == "CLE") {
-			cle(command, customer_list, order_list, order_freq_list, table, area_1, area_2);
+			cle(command, FIFO, LRCO, LFCO, table, area_1, area_2);
 		} else if (key == "PrintHT") {
 			printHT(area_1);
 		} else if (key == "PrintAVL") {
 			printAVL(area_2);
 		} else if (key == "PrintMH") {
-			printMH(order_freq_list);
+			printMH(LFCO);
 		} else {
 			//
 			int n = 1;
-			return;
+			//return;
 		}
 	}
 
-	delete customer_list;
-	delete order_list;
+	delete FIFO;
+	delete LRCO;
+	delete LFCO;
 	delete area_1;
 	delete area_2;
 
