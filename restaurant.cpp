@@ -1,6 +1,6 @@
 #include "main.h"
 
-enum Zone {zone1 = 1, zone2 = 2};
+enum Area {area1 = 1, area2 = 2};
 
 // Huffman Tree node abstract base class
 template <class T> 
@@ -145,11 +145,13 @@ string getHuffString(string text) {
 	encodeHuffTree(tree->root(), "", code_map);
 
 	string Huff_string;
+	if (code_map.size() == 1) {
+		for (auto &x : code_map) {
+			x.second = "1";
+		}
+	}
 	for (char x : text) {
 		Huff_string += code_map[x];
-	}
-	if (Huff_string == "") {
-		Huff_string = "1";
 	}
 	return Huff_string;
 }
@@ -375,7 +377,7 @@ private:
 			return rotateRight(node);
 		}
 		// right right case
-		if (balance < -1 && result > node->right->result) {
+		if (balance < -1 && result >= node->right->result) {
 			return rotateLeft(node);
 		}
 		// left right case
@@ -384,7 +386,7 @@ private:
 			return rotateRight(node);
 		}
 		// right left case
-		if (balance < -1 && result <= node->right->result) {
+		if (balance < -1 && result < node->right->result) {
 			node->right = rotateRight(node->right);
 			return rotateLeft(node);
 		}
@@ -551,7 +553,7 @@ private:
 		int ID;
 		string name;
 		Node* next;
-		Zone zone;
+		Area area;
 
 		Node() {
 			result = 0;
@@ -560,12 +562,12 @@ private:
 			next = NULL;
 		}
 
-		Node(int result, int ID, string name, Zone zone) {
+		Node(int result, int ID, string name, Area area) {
 			this->result = result;
 			this->ID = ID;
 			this->name = name;
 			this->next = NULL;
-			this->zone = zone;
+			this->area = area;
 		}
 	};
 	Node* head;
@@ -590,8 +592,8 @@ public:
 		this->size = 0;
 	}
 
-	void insertNode(int result, int ID, string name, Zone zone) {
-		Node* newNode = new Node(result, ID, name, zone);
+	void insertNode(int result, int ID, string name, Area area) {
+		Node* newNode = new Node(result, ID, name, area);
 		
 		if(head == NULL) {
 			head = newNode;
@@ -621,7 +623,7 @@ public:
 
 	void updateNum(int result, string name) {
 		if (head->name == name) {
-			insertNode(head->result, head->ID, head->name, head->zone);
+			insertNode(head->result, head->ID, head->name, head->area);
 			removeHead();
 			return;
 		}
@@ -636,7 +638,7 @@ public:
 			return;
 		}
 
-		insertNode(temp->result, temp->ID, temp->name, temp->zone);
+		insertNode(temp->result, temp->ID, temp->name, temp->area);
 		prev->next = temp->next;
 		delete temp;
 		size--;
@@ -665,11 +667,11 @@ public:
 
 	}
 
-	vector<tuple<int, int, string>> getZone1IDListAndDelete() {
+	vector<tuple<int, int, string>> getArea1IDListAndDelete() {
 		vector<tuple<int, int, string>> result;
 		Node* temp = head;
 		while (temp) {
-			if (temp->zone == 1) {
+			if (temp->area == 1) {
 				result.push_back(make_tuple(temp->ID, temp->result, temp->name));
 				Node* prev = temp;
 				temp = temp->next;
@@ -681,20 +683,20 @@ public:
 		return result;
 	}
 
-	void deleteZone1() {
+	void deleteArea1() {
 		Node* temp = head;
 		while (temp) {
-			if (temp->zone == 1) {
+			if (temp->area == 1) {
 				removeNode(temp->result, temp->name);
 			}
 			temp = temp->next;
 		}
 	}
-	vector<tuple<int, int, string>> getZone2IDListAndDelete() {
+	vector<tuple<int, int, string>> getArea2IDListAndDelete() {
 		vector<tuple<int, int, string>> result;
 		Node* temp = head;
 		while (temp) {
-			if (temp->zone == 2) {
+			if (temp->area == 2) {
 				result.push_back(make_tuple(temp->ID, temp->result, temp->name));
 				Node* prev = temp;
 				temp = temp->next;
@@ -706,10 +708,10 @@ public:
 		return result;
 	}
 
-	void deleteZone2() {
+	void deleteArea2() {
 		Node* temp = head;
 		while (temp) {
-			if (temp->zone == 2) {
+			if (temp->area == 2) {
 				removeNode(temp->result, temp->name);
 			}
 			temp = temp->next;
@@ -892,7 +894,7 @@ public:
 	}
 };
 
-void reg(string command, LinkedList* customer_list, LinkedList* order_list, MinHeap* order_freq_list, map<int, pair<int, string>>& table, HashTable* zone_1, AVLTree* zone_2) {
+void reg(string command, LinkedList* customer_list, LinkedList* order_list, MinHeap* order_freq_list, map<int, pair<int, string>>& table, HashTable* area_1, AVLTree* area_2) {
 	// check valid REG command
 	if (command == "REG" || command == "REG ") {
 		return;
@@ -902,9 +904,9 @@ void reg(string command, LinkedList* customer_list, LinkedList* order_list, MinH
 	if (!checkName(name)) {
 		return;
 	} 
-	//cout << name << endl; // del
+
+	// get Huffcode
 	string Huff_string = getHuffString(name); 
-	//cout << Huff_string << endl; // del
 	if (Huff_string.size() > 15) {
 		int start = Huff_string.size() - 15;
 		int end = Huff_string.size() - 1;
@@ -913,8 +915,6 @@ void reg(string command, LinkedList* customer_list, LinkedList* order_list, MinH
 	
 
 	int result = convertBinToDec(Huff_string);
-	//cout << result; // del
-
 
 	// MAIN FUNCTION
 	// check if result is [new_customer] or [new_order]
@@ -927,11 +927,11 @@ void reg(string command, LinkedList* customer_list, LinkedList* order_list, MinH
 	}	
 
 	if (customerExists) { // [new_order]
-		// update order_list, min_heap, zone 1, zone 2
+		// update order_list, min_heap, area 1, area 2
 		order_list->updateNum(result, name);
 		order_freq_list->updateNum(result, name);
-		zone_1->updateNum(result, name);
-		zone_2->updateNum(result, name);
+		area_1->updateNum(result, name);
+		area_2->updateNum(result, name);
 	} else { // [new_customer]
 		int ID;
 		if (customer_list->getSize() >= MAXSIZE) { // full
@@ -961,8 +961,8 @@ void reg(string command, LinkedList* customer_list, LinkedList* order_list, MinH
 				}
 			}
 
-			zone_1->remove(rm_result, rm_name);
-			zone_2->remove(rm_result, rm_name);
+			area_1->remove(rm_result, rm_name);
+			area_2->remove(rm_result, rm_name);
 			customer_list->removeNode(rm_result, rm_name);
 			order_list->removeNode(rm_result, rm_name);				order_freq_list->remove(rm_result, rm_name);
 			table[ID].first = -1;
@@ -990,36 +990,37 @@ void reg(string command, LinkedList* customer_list, LinkedList* order_list, MinH
 				return;
 			}
 		}	
-		//cout << "-" << ID << endl; // del
-		Zone zone;
-		// choose zone
-		if (result % 2 == 1) { // insert to zone 1
-			if (zone_1->isFull()) {
-				zone_2->insert(ID, result, name);
-				zone = zone2;
+		// cout << result << "-" << ID << endl; // del
+		
+		// choose area
+		Area area;
+		if (result % 2 == 1) { // insert to area 1
+			if (area_1->isFull()) {
+				area_2->insert(ID, result, name);
+				area = area2;
 			} else {
-				zone_1->insert(ID, result, name);
-				zone = zone1;
+				area_1->insert(ID, result, name);
+				area = area1;
 			}
-		} else { // insert to zone 2
-			if (zone_2->isFull()) {
-				zone_1->insert(ID, result, name);
-				zone = zone1;
+		} else { // insert to area 2
+			if (area_2->isFull()) {
+				area_1->insert(ID, result, name);
+				area = area1;
 			} else {
-				zone_2->insert(ID, result, name);
-				zone = zone2;
+				area_2->insert(ID, result, name);
+				area = area2;
 			}
 		}
 		// update customer_list, order_list, min_heap, table
-		customer_list->insertNode(result, ID, name, zone);
-		order_list->insertNode(result, ID, name, zone);
+		customer_list->insertNode(result, ID, name, area);
+		order_list->insertNode(result, ID, name, area);
 		order_freq_list->insert(ID, result, name);
 		table[ID].first = result;
 		table[ID].second = name;
 	}
 }
 
-void cle(string command, LinkedList* customer_list, LinkedList* order_list, MinHeap* order_freq_list, map<int, pair<int, string>>& table, HashTable* zone_1, AVLTree* zone_2) {
+void cle(string command, LinkedList* customer_list, LinkedList* order_list, MinHeap* order_freq_list, map<int, pair<int, string>>& table, HashTable* area_1, AVLTree* area_2) {
 	// check valid CLE command
 	if (command == "CLE" || command == "CLE ") {
 		return;
@@ -1031,32 +1032,32 @@ void cle(string command, LinkedList* customer_list, LinkedList* order_list, MinH
 	} 
 	int ID = stoi(NUM);
 
-	if (ID < 1) {	// clear zone 1
+	if (ID < 1) {	// clear area 1
 		// update customer_list, order_list, order_freq_list, min_heap, table, 
-		vector<tuple<int, int, string>> info_list = order_list->getZone1IDListAndDelete();
+		vector<tuple<int, int, string>> info_list = order_list->getArea1IDListAndDelete();
 		for (auto x : info_list) {
 			customer_list->removeNode(get<1>(x), get<2>(x));
 			//order_list->removeNode(get<1>(x), get<2>(x));
 			order_freq_list->remove(get<1>(x), get<2>(x));
-			zone_1->remove(get<1>(x), get<2>(x));
+			area_1->remove(get<1>(x), get<2>(x));
 			table[get<0>(x)].first = -1;
 		}
-	} else if (ID > MAXSIZE) {	// clear zone 2
-		vector<tuple<int, int, string>> info_list = order_list->getZone2IDListAndDelete();
+	} else if (ID > MAXSIZE) {	// clear area 2
+		vector<tuple<int, int, string>> info_list = order_list->getArea2IDListAndDelete();
 		for (auto x : info_list) {
 			customer_list->removeNode(get<1>(x), get<2>(x));
 			//order_list->removeNode(get<1>(x), get<2>(x));
 			order_freq_list->remove(get<1>(x), get<2>(x));
-			zone_2->remove(get<1>(x), get<2>(x));
+			area_2->remove(get<1>(x), get<2>(x));
 			table[get<0>(x)].first = -1;
 		}
 	} else {
 		if (table[ID].first != -1) {	// table is not empty
 			int result = table[ID].first;
 			string name = table[ID].second;
-			// update customer_list, order_list, !min_heap, table, zone
-			zone_1->remove(result, name);
-			zone_2->remove(result, name);
+			// update customer_list, order_list, !min_heap, table, area
+			area_1->remove(result, name);
+			area_2->remove(result, name);
 			customer_list->removeNode(result, name);
 			order_list->removeNode(result, name);
 			order_freq_list->remove(result, name);
@@ -1068,12 +1069,12 @@ void cle(string command, LinkedList* customer_list, LinkedList* order_list, MinH
 	}
 }
 
-void printHT(HashTable *zone_1) {
-	zone_1->print();
+void printHT(HashTable *area_1) {
+	area_1->print();
 }
 
-void printAVL(AVLTree *zone_2) {
-	zone_2->print();
+void printAVL(AVLTree *area_2) {
+	area_2->print();
 }
 
 void printMH(MinHeap* order_freq_list) {
@@ -1084,8 +1085,8 @@ void simulate(string filename)
 {
 	LinkedList* customer_list = new LinkedList();
 	LinkedList* order_list = new LinkedList();
-	HashTable* zone_1 = new HashTable();
-	AVLTree* zone_2 = new AVLTree();
+	HashTable* area_1 = new HashTable();
+	AVLTree* area_2 = new AVLTree();
 	MinHeap* order_freq_list = new MinHeap();
 	map<int, pair<int, string>> table; // -1 is empty
 	for (int i = 1; i <= MAXSIZE; i++) {
@@ -1096,31 +1097,26 @@ void simulate(string filename)
 	while (getline(myfile, command)) {
 		string key = command.substr(0, command.find(" "));
 		if (key == "REG") {
-			reg(command, customer_list, order_list, order_freq_list, table, zone_1, zone_2);
+			reg(command, customer_list, order_list, order_freq_list, table, area_1, area_2);
 		} else if (key == "CLE") {
-			cle(command, customer_list, order_list, order_freq_list, table, zone_1, zone_2);
+			cle(command, customer_list, order_list, order_freq_list, table, area_1, area_2);
 		} else if (key == "PrintHT") {
-			printHT(zone_1);
+			printHT(area_1);
 		} else if (key == "PrintAVL") {
-			printAVL(zone_2);
+			printAVL(area_2);
 		} else if (key == "PrintMH") {
 			printMH(order_freq_list);
 		} else {
 			//
 			int n = 1;
+			return;
 		}
 	}
 
-
 	delete customer_list;
 	delete order_list;
-	delete zone_1;
-	delete zone_2;
-
-
-
-
-
+	delete area_1;
+	delete area_2;
 
 	return;
 }
