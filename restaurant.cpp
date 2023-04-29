@@ -67,11 +67,16 @@ public:
 	bool isLeaf() { return Root->isLeaf(); }
 private:
 	void deleteHuffTree(HuffNode<T>* node) {
-		if (node) {
-			deleteHuffTree(node->getLeft());
-			deleteHuffTree(node->getRight());
-			delete node;
-		}
+		if (node == nullptr) {
+            return;
+        }
+        if (node->isLeaf()) {
+            delete node;
+        } else {
+            deleteHuffTree(static_cast<IntlNode<T>*>(node)->getLeft());
+            deleteHuffTree(static_cast<IntlNode<T>*>(node)->getRight());
+            delete node;
+        }
 	}
 };
 
@@ -143,6 +148,7 @@ string getHuffString(string text) {
 	unordered_map<char, string> code_map;
 
 	encodeHuffTree(tree->root(), "", code_map);
+	delete tree;
 
 	string Huff_string;
 	if (code_map.size() == 1) {
@@ -809,6 +815,9 @@ private:
 	}
 public:
 	MinHeap() {
+		for (int i = 0; i < max_size; i++) {
+			heap[i] = nullptr;
+		}
 		this->size = 0;
 		this->max_size = MAXSIZE;
 		this->increase_num = 0;
@@ -1126,4 +1135,3 @@ void simulate(string filename)
 
 	return;
 }
-
